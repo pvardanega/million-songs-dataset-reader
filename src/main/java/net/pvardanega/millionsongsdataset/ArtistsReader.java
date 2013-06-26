@@ -1,4 +1,4 @@
-package net.pvardanega.hdf5;
+package net.pvardanega.millionsongsdataset;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import java.io.IOException;
