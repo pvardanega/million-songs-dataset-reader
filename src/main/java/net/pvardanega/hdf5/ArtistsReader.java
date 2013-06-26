@@ -1,3 +1,5 @@
+package net.pvardanega.hdf5;
+
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -8,7 +10,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 
-public class XPUADatasetReader {
+public class ArtistsReader {
 
     /**
      * curl -X GET http://ec2-54-229-70-224.eu-west-1.compute.amazonaws.com:9200/yawyl/artists/_count
