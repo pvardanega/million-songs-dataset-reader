@@ -13,19 +13,20 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 public class ArtistsReader {
 
     /**
-     * curl -X GET http://ec2-54-229-70-224.eu-west-1.compute.amazonaws.com:9200/yawyl/artists/_count
-     * curl -X DELETE http://ec2-54-229-70-224.eu-west-1.compute.amazonaws.com:9200/yawyl/artists/
-     *
      * @param args
      * @throws IOException
      */
     public static void main(String[] args) throws IOException {
+
+        if (args.length != 1) {
+            System.err.println("Usage: ./run.sh elasticsearch-host.com");
+            System.exit(1);
+        }
+
         List<String> lines = Files.readAllLines(Paths.get("src/main/resources/subset_unique_artists.txt"),
                                                 Charset.defaultCharset());
 
-        Client client = new TransportClient()
-                .addTransportAddress(
-                        new InetSocketTransportAddress("ec2-54-229-70-224.eu-west-1.compute.amazonaws.com",9300));
+        Client client = new TransportClient().addTransportAddress(new InetSocketTransportAddress(args[0], 9300));
 
         for (String line : lines) {
             String[] fields = line.split("<SEP>");
