@@ -5,12 +5,17 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 
 public class ArtistsReader {
+
+    private static String SEPARATOR = "<SEP>";
 
     /**
      * @param args
@@ -19,32 +24,53 @@ public class ArtistsReader {
     public static void main(String[] args) throws IOException {
 
         if (args.length != 1) {
-            System.err.println("Usage: ./run.sh elasticsearch-host.com");
+            System.err.println("Missing parameter: elastic search host ");
             System.exit(1);
         }
 
-        List<String> lines = Files.readAllLines(Paths.get("src/main/resources/subset_unique_artists.txt"),
-                                                Charset.defaultCharset());
-
         Client client = new TransportClient().addTransportAddress(new InetSocketTransportAddress(args[0], 9300));
 
-        for (String line : lines) {
-            String[] fields = line.split("<SEP>");
+        // Retrieve artists with locations
+        List<String> locationLines = Files.readAllLines(Paths.get("src/main/resources/subset_artist_location.txt"),
+                Charset.defaultCharset());
+        Map<String, String> artistsWithLocations = new HashMap<>();
+        for(String locationLine: locationLines) {
+            String[] fields = locationLine.split(SEPARATOR);
+            artistsWithLocations.put(fields[4], fields[1] + SEPARATOR + fields[2]);
+        }
+
+        // Push artists to elastic search
+        List<String> artistLines = Files.readAllLines(Paths.get("src/main/resources/subset_unique_artists.txt"),
+                Charset.defaultCharset());
+        int indice = 0;
+        String[] locations;
+        for(String artistLine: artistLines) {
+            String[] fields = artistLine.split(SEPARATOR);
             String id = fields[1];
             String name = fields[3];
             if (id != null && id.length() > 0 && name != null && name.length() > 0) {
-                client.prepareIndex("yawyl", "artists", id)
-                        .setSource(jsonBuilder()
-                                .startObject()
-                                .field("artist_id", id)
-                                .field("name", name)
-                                .endObject()
-                        )
-                        .execute();
+                locations = artistsWithLocations.containsKey(name) ?
+                        artistsWithLocations.get(name).split(SEPARATOR) : null;
+                try {
+                    client.prepareIndex("yawyl", "artists", id)
+                            .setSource(jsonBuilder()
+                                    .startObject()
+                                    .field("artist_id", id)
+                                    .field("name", name)
+                                    .field("lattitude", locations == null ? null : locations[0])
+                                    .field("longitude", locations == null ? null : locations[1])
+                                    .endObject()
+                            )
+                            .execute().get();
+                    indice++;
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
             }
         }
 
         client.close();
+        System.out.println(indice + " artists added");
     }
 
 }
